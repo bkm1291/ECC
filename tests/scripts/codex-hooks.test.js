@@ -15,6 +15,7 @@ const pluginCacheCheckScript = path.join(repoRoot, 'scripts', 'codex', 'check-pl
 const mergeCodexConfigScript = path.join(repoRoot, 'scripts', 'codex', 'merge-codex-config.js');
 const mergeMcpConfigScript = path.join(repoRoot, 'scripts', 'codex', 'merge-mcp-config.js');
 const syncScript = path.join(repoRoot, 'scripts', 'sync-ecc-to-codex.sh');
+const prePushHook = path.join(repoRoot, 'scripts', 'codex-git-hooks', 'pre-push');
 const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 const packageVersion = packageJson.version;
 const deterministicPackageEnv = {
@@ -276,6 +277,30 @@ if (os.platform() === 'win32') {
       assert.ok(fs.existsSync(path.join(weirdHooksDir, 'pre-push')));
     } finally {
       cleanup(homeDir);
+    }
+  })
+)
+  passed++;
+else failed++;
+
+if (
+  test('global pre-push hook stays lightweight and does not run repo suites', () => {
+    const source = fs.readFileSync(prePushHook, 'utf8');
+    const forbidden = [
+      /\bmake\s+test\b/,
+      /\bmake\s+check\b/,
+      /\bpytest\b/,
+      /\bxdist\b/,
+      /-n\s+logical/,
+      /\bworksteal\b/,
+      /\bbacktest\b/i,
+      /\bvectorbt\b/i,
+      /\bnpm\s+(run\s+)?test\b/,
+      /\bgo\s+test\b/,
+    ];
+
+    for (const pattern of forbidden) {
+      assert.doesNotMatch(source, pattern);
     }
   })
 )
